@@ -1,0 +1,15 @@
+*.DS_Store
+*.pyc
+*.swp
+*.egg-info
+build/
+examples/out/*
+examples/*.json
+*.weights
+!examples/README.md
+venv
+MANIFEST
+dist/
+out/*
+*.rdb
+__pycache__
