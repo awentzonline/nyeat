@@ -32,14 +32,9 @@ class NodeGene(object):
         None, activations.gaussian, activations.relu,
         np.cos, np.sin, np.abs, np.tanh,)
 
-    def __init__(self, id, f_activation=None):
+    def __init__(self, id, f_activation):
         self.id = id
-        if f_activation is None:
-            self.f_activation = self.random_activation()
-
-    @classmethod
-    def random_activation(self):
-        return np.random.choice(self.activations)
+        self.f_activation = f_activation
 
 
 class Genome(object):
@@ -63,8 +58,7 @@ class Genome(object):
                 gene.perturb(sigma=p_sigma)
 
     def split_edge(self, neat):
-        target_gene = np.random.choice([
-            g for g in self.genes.values() if g.enabled])
+        target_gene = np.random.choice(self.enabled_genes)
         target_gene.enabled = False
         new_node = neat.make_node(neat.next_node_id)
         self.add_gene(*neat.make_gene(target_gene.a, new_node.id))
@@ -81,9 +75,10 @@ class Genome(object):
             print('Max edges of {} reached'.format(max_edges))
             return False
         new_g = self.to_graph()
-        for i in range(num_nodes):
-            for j in range(num_nodes):
-                if i == j:
+        for node_i in self.nodes.values():
+            for node_j in self.nodes.values():
+                i, j = node_i.id, node_j.id
+                if i == j or i in neat.output_nodes or j in neat.input_nodes:
                     continue
                 key = (i, j)
                 if key in self.edges:
@@ -122,3 +117,11 @@ class Genome(object):
     @property
     def enabled_genes(self):
         return [g for g in self.genes.values() if g.enabled]
+
+    def summary(self):
+        print('Nodes\n--------')
+        for node in self.nodes.values():
+            print('{} {}'.format(node.id, node.f_activation.__name__))
+        print('Edges\n--------')
+        for gene in self.genes.values():
+            print('{} -> {}, w={}'.format(gene.a, gene.b, gene.weight))
