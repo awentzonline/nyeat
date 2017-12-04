@@ -121,7 +121,11 @@ class Genome(object):
     def summary(self):
         print('Nodes\n--------')
         for node in self.nodes.values():
-            print('{} {}'.format(node.id, node.f_activation.__name__))
+            if node.f_activation:
+                name = node.f_activation.__name__
+            else:
+                name = 'none'
+            print('{} {}'.format(node.id, name))
         print('Edges\n--------')
         for gene in self.genes.values():
             print('{} -> {}, w={}'.format(gene.a, gene.b, gene.weight))

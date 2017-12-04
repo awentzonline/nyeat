@@ -3,15 +3,16 @@ from collections import defaultdict
 
 import numpy as np
 
-from nyeat import activations
+from nyeat.activations import gaussian, relu
 from nyeat.genome import EdgeGene, Genome, NodeGene
 from nyeat.nn_graph import NNGraph
 
 
+default_activations = (
+    None, gaussian, relu, np.cos, np.sin, np.abs, np.tanh,)
+
 class NEAT(object):
-    activations = (
-        None, activations.gaussian, activations.relu,
-        np.cos, np.sin, np.abs, np.tanh,)
+    activations = None
 
     def __init__(self, edge_class=EdgeGene, node_class=NodeGene, activations=None):
         self.edge_class = edge_class
@@ -20,45 +21,45 @@ class NEAT(object):
         self.innovations = []
         self.species = []
         self.genomes = []
-        self.nodes = set()
         self.node_map = {}
         self.gene_map = {}
         self.input_nodes = set()
         self.output_nodes = set()
-        if activations:
-            NEAT.activations = activations
+        if not activations:
+            activations = default_activations
+        NEAT.activations = activations
 
     def populate(self, population_size, num_inputs, num_outputs, output_activation=np.tanh):
         for pop_i in range(population_size):
             genome = Genome()
             self.genomes.append(genome)
             for output_i in range(num_outputs):
-                for input_i in range(num_inputs):
-                    gene, in_node, out_node = self.make_gene(input_i, num_inputs + output_i)
+                output_id = num_inputs + output_i
+                for input_id in range(num_inputs):
+                    gene, in_node, out_node = self.make_gene(input_id, output_id)
                     out_node.f_activation = output_activation
                     self.input_nodes.add(in_node.id)
                     self.output_nodes.add(out_node.id)
                     genome.add_gene(gene, in_node, out_node)
 
-    def run(self, f_fitness, num_epochs=5000, report_every=10):
-        epoch = 0
+    def run(self, f_fitness, num_generations=5000, report_every=10):
+        generation_i = 0
         best_fitness = None
         best_genome = None
-        genome_fitness = defaultdict(lambda:-99999999)
-        while epoch < num_epochs:
-            epoch += 1
+        genome_fitness = defaultdict(lambda:-np.inf)
+        while generation_i < num_generations:
+            generation_i += 1
             this_generation = []
             for genome_i, genome in enumerate(self.genomes):
+                # create a mutant child
                 new_genome = genome.clone()
-                #new_genome.summary()
-                new_genome.mutate(rate=0.5, p_sigma=1.0)
-                if np.random.uniform() < 0.1:
-                    if np.random.uniform() < 0.5:
-                        new_genome.split_edge(self)
-                    else:
-                        new_genome.add_edge(self)
-                nn = self.net_from_genome(new_genome)
-                fitness = f_fitness(nn.eval)
+                if np.random.uniform() < 0.05:
+                    new_genome.split_edge(self)
+                if np.random.uniform() < 0.15: #else:
+                    new_genome.add_edge(self)
+                new_genome.mutate(rate=0.8, p_sigma=5.0)
+                # eval the new genome
+                fitness = f_fitness(new_genome)
                 if best_fitness is None or best_fitness < fitness:
                     best_fitness = fitness
                     best_genome = new_genome
@@ -68,13 +69,12 @@ class NEAT(object):
                 else:
                     this_genome = genome
                 this_generation.append(this_genome)
-            if epoch % report_every == 0:
+            if generation_i % report_every == 0:
                 print(
-                    'Epoch {} - fitness={}'.format(epoch, best_fitness),
+                    'Generation {} - fitness={}'.format(generation_i, best_fitness),
                     'nodes={} edges={}'.format(
                         len(best_genome.nodes), len(best_genome.genes)
                     ))
-                #new_genome.summary()
             self.genomes = this_generation
         return best_genome
 

@@ -18,7 +18,7 @@ genome = neat.genomes[0]
 # do some mutations
 for i in range(300):
     if i % 10 == 0:
-        print("mutating...", i)
+        print('mutating...', i)
     if np.random.uniform() < 0.5:
         genome.split_edge(neat)
     else:
@@ -26,8 +26,9 @@ for i in range(300):
 # create a CPPN from this genome and render an image
 nn = neat.net_from_genome(genome)
 cppn = CPPN(nn)
-grid_shape = (512, 200)
-img_arr = cppn.render(grid_shape, ((-1, 1), (-1, 1), (-1, 1)))
+img_shape = (512, 200)
+img_arr = cppn.render(reversed(img_shape), ((-1, 1), (-1, 1), (-1, 1)))
 img_arr = img_arr * 255.
+img_arr = img_arr.T
 img = arr_to_img(img_arr, normalize=False)
 img.save('nyeat.png')

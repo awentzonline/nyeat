@@ -16,18 +16,19 @@ xor_values = [
     [1, 1, 0],
 ]
 
-def eval_f(f, verbose=False):
+def eval_genome(genome, verbose=False):
+    nn = neat.net_from_genome(genome)
     err = 0.
     for x, y, z in xor_values:
         inputs = np.array([x, y, 1.]).astype(np.float32)
-        p_z = f(inputs)[0]
+        p_z = nn.eval(inputs)[0]
         this_err = np.abs(z - p_z)
         if verbose:
             print(x, y, p_z, this_err)
         err += this_err
     return -(err ** 2)
 
-best_genome = neat.run(eval_f, num_epochs=400)
+best_genome = neat.run(eval_genome, num_generations=400)
 nn = neat.net_from_genome(best_genome)
 for x, y, z in xor_values:
     inputs = np.array([x, y, 1.]).astype(np.float32)

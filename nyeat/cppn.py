@@ -7,12 +7,14 @@ class CPPN(object):
     def __init__(self, nn):
         self.nn = nn
 
-    def render(self, grid_shape, ranges):
+    def render(self, grid_shape, ranges=None):
+        if ranges is None:
+            ranges = [(-1., 1.) for _ in range(len(grid_shape))]
         # rectangular coordinates
         inputs = np.meshgrid(
             *[
                 np.linspace(low, high, n)
-                for n, (low, high) in zip(reversed(grid_shape), ranges)
+                for n, (low, high) in zip(grid_shape, ranges)
             ]
         )
         indexes_arr = np.array(inputs)
@@ -23,5 +25,5 @@ class CPPN(object):
         inputs.append(np.ones(indexes_arr.shape[1:]))
         inputs = np.array(inputs)
         y = self.nn.eval(inputs)
-        y = y.T
+        #y = y.T
         return y
