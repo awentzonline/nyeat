@@ -13,3 +13,4 @@ dist/
 out/*
 *.rdb
 __pycache__
+*.pkl

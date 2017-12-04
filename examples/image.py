@@ -27,8 +27,8 @@ for i in range(300):
 nn = NNGraph.from_genome(genome)
 cppn = CPPN(nn)
 img_shape = (512, 200)
-img_arr = cppn.render(reversed(img_shape), ((-1, 1), (-1, 1), (-1, 1)))
+img_arr = cppn.render(img_shape, ((-1, 1), (-1, 1), (-1, 1)))
 img_arr = img_arr * 255.
-img_arr = img_arr.T
+img_arr = img_arr.transpose(1, 2, 0)
 img = arr_to_img(img_arr, normalize=False)
 img.save('nyeat.png')
