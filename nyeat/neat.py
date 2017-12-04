@@ -11,6 +11,7 @@ from nyeat.nn_graph import NNGraph
 default_activations = (
     None, gaussian, relu, np.cos, np.sin, np.abs, np.tanh,)
 
+
 class NEAT(object):
     activations = None
 
@@ -23,8 +24,6 @@ class NEAT(object):
         self.genomes = []
         self.node_map = {}
         self.gene_map = {}
-        self.input_nodes = set()
-        self.output_nodes = set()
         if not activations:
             activations = default_activations
         NEAT.activations = activations
@@ -38,11 +37,9 @@ class NEAT(object):
                 for input_id in range(num_inputs):
                     gene, in_node, out_node = self.make_gene(input_id, output_id)
                     out_node.f_activation = output_activation
-                    self.input_nodes.add(in_node.id)
-                    self.output_nodes.add(out_node.id)
-                    genome.add_gene(gene, in_node, out_node)
+                    genome.add_gene(gene, in_node, out_node, is_input=True, is_output=True)
 
-    def run(self, f_fitness, num_generations=5000, report_every=10):
+    def run(self, f_fitness, num_generations=5000, report_every=5):
         generation_i = 0
         best_fitness = None
         best_genome = None
@@ -96,10 +93,6 @@ class NEAT(object):
         for node_id in key:
             nodes.append(self.make_node(node_id))
         return gene, nodes[0], nodes[1]
-
-    def net_from_genome(self, genome):
-        return NNGraph(
-            genome.to_graph(), self.input_nodes, self.output_nodes)
 
     @property
     def innovation_number(self):

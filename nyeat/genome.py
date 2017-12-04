@@ -42,12 +42,18 @@ class Genome(object):
         self.genes = {}
         self.edges = set()
         self.nodes = {}
+        self.input_nodes = set()
+        self.output_nodes = set()
 
-    def add_gene(self, gene, in_node, out_node):
+    def add_gene(self, gene, in_node, out_node, is_input=False, is_output=False):
         self.genes[gene.innovation] = gene
         self.edges.add((in_node.id, out_node.id))
         for node in (in_node, out_node):
             self.nodes[node.id] = node
+        if is_input:
+            self.input_nodes.add(in_node.id)
+        if is_output:
+            self.output_nodes.add(out_node.id)
 
     def clone(self):
         return copy.deepcopy(self)
@@ -78,7 +84,7 @@ class Genome(object):
         for node_i in self.nodes.values():
             for node_j in self.nodes.values():
                 i, j = node_i.id, node_j.id
-                if i == j or i in neat.output_nodes or j in neat.input_nodes:
+                if i == j or i in self.output_nodes or j in self.input_nodes:
                     continue
                 key = (i, j)
                 if key in self.edges:
@@ -101,6 +107,10 @@ class Genome(object):
             (g.a, g.b, dict(g=g)) for g in self.enabled_genes
         )
         return g
+
+    def net_from_genome(self):
+        return NNGraph(
+            genome.to_graph(), self.input_nodes, self.output_nodes)
 
     @classmethod
     def crossover(cls, best_genome, other_genome):

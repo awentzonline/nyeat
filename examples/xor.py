@@ -17,7 +17,7 @@ xor_values = [
 ]
 
 def eval_genome(genome, verbose=False):
-    nn = neat.net_from_genome(genome)
+    nn = NNGraph.from_genome(genome)
     err = 0.
     for x, y, z in xor_values:
         inputs = np.array([x, y, 1.]).astype(np.float32)
@@ -28,11 +28,11 @@ def eval_genome(genome, verbose=False):
         err += this_err
     return -(err ** 2)
 
-best_genome = neat.run(eval_genome, num_generations=400)
-nn = neat.net_from_genome(best_genome)
+best_genome = neat.run(eval_genome, num_generations=150)
+nn = NNGraph.from_genome(best_genome)
 for x, y, z in xor_values:
     inputs = np.array([x, y, 1.]).astype(np.float32)
     p_z = nn.eval(inputs)[0]
     print(inputs, p_z, z)
-eval_f(nn.eval, verbose=True)
+eval_genome(best_genome, verbose=True)
 best_genome.summary()

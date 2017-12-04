@@ -24,7 +24,7 @@ for i in range(300):
     else:
         genome.add_edge(neat)
 # create a CPPN from this genome and render an image
-nn = neat.net_from_genome(genome)
+nn = NNGraph.from_genome(genome)
 cppn = CPPN(nn)
 img_shape = (512, 200)
 img_arr = cppn.render(reversed(img_shape), ((-1, 1), (-1, 1), (-1, 1)))

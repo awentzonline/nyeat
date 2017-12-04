@@ -32,3 +32,7 @@ class NNGraph(object):
         return np.array(
             [activations[node] for node in self.output_nodes],
             dtype=dtype)
+
+    @classmethod
+    def from_genome(cls, genome):
+        return cls(genome.to_graph(), genome.input_nodes, genome.output_nodes)
