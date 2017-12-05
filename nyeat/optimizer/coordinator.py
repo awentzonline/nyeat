@@ -38,7 +38,7 @@ class Coordinator(object):
             best_genome = None
             generation_genome_fitness = {}
             generation_i += 1
-            this_generation = self.breed_generation(neat)
+            this_generation = neat.genomes
             #print('Enqueuing...')
             for genome_i, genome in enumerate(this_generation):
                 work_queue.put((genome_i, genome))
@@ -51,9 +51,10 @@ class Coordinator(object):
                 num_results_pending -= 1
                 if num_results_pending <= 0:
                     break
-            top_genomes = sorted((f, g) for g, f in generation_genome_fitness.items())
-            worst_best_fitness, _ = top_genomes[10]
 
+            save_top_n = int(len(neat.genomes) * 0.1)
+            top_genomes = [(f, g) for g, f in generation_genome_fitness.items()][:save_top_n]
+            top_genome_ids = set(g for _, g in top_genomes)
             #print('Evaluation complete.')
             next_generation = []
             for genome_i, (genome, new_genome) in enumerate(zip(neat.genomes, this_generation)):
@@ -62,15 +63,9 @@ class Coordinator(object):
                 if best_fitness is None or best_fitness < fitness:
                     best_fitness = fitness
                     best_genome = new_genome
-                # update population
-                if fitness >= worst_best_fitness: #genome_fitness[genome_i]:
-                    genome_fitness[genome_i] = fitness
-                    this_genome = new_genome
-                else:
-                    this_genome = genome
-                next_generation.append(this_genome)
-            neat.genomes = next_generation
-
+            # update population
+            neat.genomes = self.breed_generation(
+                neat, this_generation, generation_genome_fitness, genome_fitness)
             if generation_i % report_every == 0:
                 print(
                     'Generation {} - fitness={}'.format(generation_i, best_fitness),
@@ -87,16 +82,20 @@ class Coordinator(object):
             process.join()
         return best_genome
 
-    def breed_generation(self, neat):
+    def breed_generation(self, neat, genomes, fitnesses, best_fitnesses):
         #print('Breeding generation {}'.format(generation_i))
-        this_generation = []
-        for genome in neat.genomes:
+        next_generation = []
+        for genome_i, (genome, new_genome) in enumerate(zip(neat.genomes, genomes)):
+            fitness = fitnesses[genome_i]
+            if fitness > fitnesses[genome_i]: #in top_genome_ids: #genome_fitness[genome_i]:
+                best_fitnesses[genome_i] = fitness
+                genome = new_genome
             # create a mutant child
             new_genome = genome.clone()
-            if np.random.uniform() < 2 * 0.05:
+            if np.random.uniform() < 0.05:
                 new_genome.split_edge(neat)
-            if np.random.uniform() < 2 * 0.15: #else:
+            if np.random.uniform() < 0.15: #else:
                 new_genome.add_edge(neat)
-            new_genome.mutate(rate=0.8, p_sigma=5.0)
-            this_generation.append(new_genome)
-        return this_generation
+            new_genome.mutate(rate=0.8, p_sigma=1.0)
+            next_generation.append(new_genome)
+        return next_generation
