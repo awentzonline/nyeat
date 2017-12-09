@@ -45,6 +45,7 @@ class XOREvaluator(Evaluator):
         self.substrate = Substrate(2, ((3, np.tanh), (1, activations.sigmoid)))
 
     def evaluate(self, genome):
+        #genome.summary()
         nn = NNGraph.from_genome(genome)
         cppn = CPPN(nn)
         self.substrate.update_weights(cppn)

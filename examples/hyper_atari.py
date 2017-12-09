@@ -47,7 +47,7 @@ class AtariEvaluator(Evaluator):
         self.substrate = Substrate(
             np.prod(self.observation_size),
             ((self.num_hidden, np.tanh),
-             (self.num_actions, activations.softmax)))
+             (self.num_actions, np.tanh)))
 
     def evaluate(self, genome):
         nn = NNGraph.from_genome(genome)
@@ -98,9 +98,10 @@ if __name__ == '__main__':
     parser.add_argument('--pop-size', type=int, default=100)
     parser.add_argument('--hidden-size', type=int, default=100)
     parser.add_argument('--report-every', type=int, default=1)
-    parser.add_argument('--num_generations', type=int, default=50)
+    parser.add_argument('--num-generations', type=int, default=50)
+    parser.add_argument('--num-workers', type=int, default=10)
     parser.add_argument('--observation-size', type=int, default=60)
-    parser.add_argument('--env', default='Pong-v0')
+    parser.add_argument('--env', default='SpaceInvaders-v0')
     config = parser.parse_args()
 
     if config.file and config.exhibition:
@@ -111,7 +112,7 @@ if __name__ == '__main__':
         neat.populate(
             config.pop_size, 4, num_layers, output_activation=None)
 
-        num_workers = 5
+        num_workers = config.num_workers
         coordinator = Coordinator()
         best_genome = coordinator.run(
             neat, num_workers, AtariEvaluator,

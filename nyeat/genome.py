@@ -18,6 +18,7 @@ class EdgeGene(object):
 
     def perturb(self, sigma=0.1):
         self.weight += np.random.normal(0., sigma)
+        self.weight = np.clip(self.weight, -100., 100.)
 
     def clone(self):
         return copy.deepcopy(self)
@@ -35,6 +36,9 @@ class NodeGene(object):
     def __init__(self, id, f_activation):
         self.id = id
         self.f_activation = f_activation
+
+    def clone(self):
+        return copy.deepcopy(self)
 
 
 class Genome(object):
@@ -67,8 +71,12 @@ class Genome(object):
         target_gene = np.random.choice(self.enabled_genes)
         target_gene.enabled = False
         new_node = neat.make_node(neat.next_node_id)
-        self.add_gene(*neat.make_gene(target_gene.a, new_node.id))
-        self.add_gene(*neat.make_gene(new_node.id, target_gene.b))
+        g, a, b = neat.make_gene(target_gene.a, new_node.id)
+        g.weight = 1.
+        self.add_gene(g, a, b)
+        g, a, b = neat.make_gene(new_node.id, target_gene.b)
+        g.weight = target_gene.weight
+        self.add_gene(g, a, b)
 
     def add_edge(self, neat):
         """Attempts to add a new edge to the genome subject to
@@ -100,6 +108,23 @@ class Genome(object):
                     return True
         return False
 
+    def distance(self, other, c1=1., c2=1., c3=0.4):
+        """The c kwargs are those from http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf"""
+        n = float(max(len(self.genes), len(other.genes)))
+        if n < 20:
+            n = 1.
+        other_unique_genes = [g for g in other.genes if not g.innovation in self.genes]
+        other_max_innovation = other.max_innovation
+        excess = len(filter(
+            lambda x: x.innovation > other_max_innovation, other_unique_genes))
+        disjoint = len(other_unique_genes) - excess
+        weight_diffs = []
+        for gene in self.genes.values():
+            if gene.innovation in other.genes:
+                other_gene = other.genes[gene.innovation]
+                weight_diffs.append(other_gene.weight - gene.weight)
+        return (c1 * excess + c2 * disjoint) / n + c3 * np.mean(np.abs(weight_diffs))
+
     def to_graph(self):
         g = nx.DiGraph()
         g.add_nodes_from((n.id, dict(n=n)) for n in self.nodes.values())
@@ -113,20 +138,28 @@ class Genome(object):
             genome.to_graph(), self.input_nodes, self.output_nodes)
 
     @classmethod
-    def crossover(cls, best_genome, other_genome):
-        new_genome = Genome()
-        for best_gene in best_genome.genes:
+    def crossover(cls, neat, best_genome, other_genome):
+        new_genome = best_genome.clone()
+        new_genes = list(new_genome.genes.values())
+        for best_gene in new_genes:
             if (best_gene.innovation in other_genome.genes
                     and np.random.uniform() < 0.5):
                 chosen_gene = other_genome.genes[best_gene.innovation]
             else:
                 chosen_gene = best_gene
-            new_genome.add_gene(chosen_gene.clone())
+            g, in_node, out_node = neat.make_gene(chosen_gene.a, chosen_gene.b)
+            g.weight = chosen_gene.weight
+            g.enabled = chosen_gene.enabled
+            new_genome.add_gene(g, in_node, out_node)
         return new_genome
 
     @property
     def enabled_genes(self):
         return [g for g in self.genes.values() if g.enabled]
+
+    @property
+    def max_innovation(self):
+        return max(self.genes.items())
 
     def summary(self):
         print('Nodes\n--------')
@@ -135,7 +168,7 @@ class Genome(object):
                 name = node.f_activation.__name__
             else:
                 name = 'none'
-            print('{} {}'.format(node.id, name))
+            print('{} - {}'.format(node.id, name))
         print('Edges\n--------')
         for gene in self.genes.values():
             print('{} -> {}, w={}'.format(gene.a, gene.b, gene.weight))

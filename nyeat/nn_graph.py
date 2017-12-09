@@ -29,9 +29,13 @@ class NNGraph(object):
             if node_dict['n'].f_activation is not None:
                 activation = node_dict['n'].f_activation(activation)
             activations[node] = activation
-        return np.array(
-            [activations[node] for node in self.output_nodes],
-            dtype=dtype)
+        try:
+            return np.array(
+                [activations[node] for node in self.output_nodes],
+                dtype=dtype)
+        except Exception as e:
+            print(e)
+            import pdb; pdb.set_trace()
 
     @classmethod
     def from_genome(cls, genome):

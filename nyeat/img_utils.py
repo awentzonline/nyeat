@@ -8,5 +8,5 @@ def arr_to_img(x, normalize=False):
         x = 255. * (x - x.min(axis=axes)) / (x.max(axis=axes) - x.min(axis=axes))
     x = x.astype(np.uint8)
     mode = {
-        2: 'L', 3: 'RGB', 4: 'RGBA'}[len(x.shape)]
+        2: 'L', 3: 'RGB', 4: 'RGBA'}[x.ndim]
     return Image.fromarray(x, mode=mode)

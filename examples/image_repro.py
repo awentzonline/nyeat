@@ -29,7 +29,12 @@ def exhibition(config):
 
 
 def save_cppn_image(cppn, size=(200, 200)):
-    img_arr = cppn.render(size).transpose(1, 2, 0)
+    img_arr = cppn.render(size)
+    if len(cppn.nn.output_nodes) > 1:
+        img_arr = img_arr.transpose(1, 2, 0)
+    else:
+        if img_arr.ndim == 3:
+            img_arr = img_arr[0]
     img_arr *= 255.
     img = arr_to_img(img_arr, normalize=False)
     img.save('repro.png')
@@ -38,7 +43,9 @@ def save_cppn_image(cppn, size=(200, 200)):
 class ImageCopyEvaluator(Evaluator):
     def __init__(self, config):
         self.config = config
-        self.img = Image.open(config.input_file).convert('RGB')
+        self.img = Image.open(config.input_file)
+        self.img = self.img.convert(
+            {True: 'L', False: 'RGB'}[bool(self.config.grey)])
         self.img_arr = np.asarray(self.img).astype(np.float32)
         self.img_arr = self.img_arr / 255.
 
@@ -46,7 +53,8 @@ class ImageCopyEvaluator(Evaluator):
         nn = NNGraph.from_genome(genome)
         cppn = CPPN(nn)
         repro = cppn.render(self.img.size)
-        repro = repro.transpose(1, 2, 0)
+        if not self.config.grey:
+            repro = repro.transpose(1, 2, 0)
         mse = np.sum(np.square(self.img_arr - repro))
         if np.random.uniform() < 0.01:
             save_cppn_image(cppn)
@@ -59,12 +67,13 @@ if __name__ == '__main__':
     parser.add_argument('input_file')
     parser.add_argument('--file', default='genome.pkl')
     parser.add_argument('--exhibition', action='store_true')
-    parser.add_argument('--pop-size', type=int, default=100)
+    parser.add_argument('--pop-size', type=int, default=150)
     parser.add_argument('--hidden-size', type=int, default=100)
     parser.add_argument('--report-every', type=int, default=1)
     parser.add_argument('--num-generations', type=int, default=50)
     parser.add_argument('--num-workers', type=int, default=5)
     parser.add_argument('--resize', type=int, default=60)
+    parser.add_argument('--grey', action='store_true')
     parser.add_argument('--env', default='Pong-v0')
     config = parser.parse_args()
 
@@ -72,7 +81,7 @@ if __name__ == '__main__':
         exhibition(config)
     else:
         neat = NEAT()
-        num_channels = 3
+        num_channels = {True: 1, False: 3}[bool(config.grey)]
         neat.populate(
             config.pop_size, 4, num_channels,
             output_activation=activations.sigmoid)
