@@ -131,11 +131,8 @@ class Genome(object):
             return 0
         if n < 20:
             n = 1.
-        other_unique_genes = [g for g in other.genes.values() if not g.innovation in self.genes.values()]
+        other_unique_genes = [g for g in other.genes.values() if not g.innovation in self.genes.keys()]
         other_max_innovation = other.max_innovation
-        # def poo(x):
-        #     return x.innovation > other_max_innovation
-        # excess = len(list(filter(poo, self.genes.values())))
         excess = len(list(filter(
             lambda x: x.innovation > other_max_innovation, self.genes.values())))
         disjoint = len(other_unique_genes) - excess
@@ -148,6 +145,7 @@ class Genome(object):
             weight_difference = np.mean(np.abs(weight_diffs))
         else:
             weight_difference = 0
+        #print('dist', excess, disjoint, weight_difference)
         return (c1 * excess + c2 * disjoint) / n + c3 * weight_difference
 
     def to_graph(self):
