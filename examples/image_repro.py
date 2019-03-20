@@ -74,7 +74,6 @@ if __name__ == '__main__':
     parser.add_argument('--num-workers', type=int, default=5)
     parser.add_argument('--resize', type=int, default=60)
     parser.add_argument('--grey', action='store_true')
-    parser.add_argument('--env', default='Pong-v0')
     config = parser.parse_args()
 
     if config.file and config.exhibition:

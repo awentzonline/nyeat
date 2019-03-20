@@ -5,7 +5,10 @@ from PIL import Image
 def arr_to_img(x, normalize=False):
     if normalize:
         axes = tuple(range(x.ndim - 1))
-        x = 255. * (x - x.min(axis=axes)) / (x.max(axis=axes) - x.min(axis=axes))
+        dv = x.max(axis=axes) - x.min(axis=axes)
+        if dv.all() == 0:
+            dv = 1.
+        x = 255. * (x - x.min(axis=axes)) / dv
     x = x.astype(np.uint8)
     mode = {
         2: 'L', 3: 'RGB', 4: 'RGBA'}[x.ndim]

@@ -27,47 +27,53 @@ class Coordinator(object):
 
         generation_i = 0
         fitnesses = defaultdict(lambda:-np.inf)
-        while generation_i < num_generations:
-            best_fitness = None
-            best_genome = None
-            genome_fitnesses = {}
-            generation_i += 1
-            #print('Enqueuing...')
-            for genome_i, genome in neat.enumerated_genomes:
-                self.work_queue.put((genome_i, genome))
+        try:
+            while generation_i < num_generations:
+                best_fitness = None
+                best_genome = None
+                genome_fitnesses = {}
+                generation_i += 1
+                #print('Enqueuing...')
+                for genome in neat.genomes.values():
+                    self.work_queue.put(genome)
 
-            #print('Working generation {}'.format(generation_i))
-            num_results_pending = neat.num_genomes
-            while True:
-                genome_i, fitness = self.result_queue.get()
-                genome_fitnesses[genome_i] = fitness
-                num_results_pending -= 1
-                if num_results_pending <= 0:
-                    break
+                #print('Working generation {}'.format(generation_i))
+                num_results_pending = neat.num_genomes
+                while True:
+                    genome_id, fitness = self.result_queue.get()
+                    genome_fitnesses[genome_id] = fitness
+                    num_results_pending -= 1
+                    if num_results_pending <= 0:
+                        break
 
-            # save the current best for display
-            next_generation = []
-            for genome_i, new_genome in neat.enumerated_genomes:
-                fitness = genome_fitnesses[genome_i]
-                # update best genome
-                if best_fitness is None or best_fitness <= fitness:
-                    best_fitness = fitness
-                    best_genome = new_genome
+                # find the current best for display
+                next_generation = []
+                for genome in neat.genomes.values():
+                    fitness = genome_fitnesses[genome.id]
+                    # update best genome
+                    if best_fitness is None or best_fitness <= fitness:
+                        best_fitness = fitness
+                        best_genome = genome
 
-            # update population
-            neat.breed(genome_fitnesses)
-
-            # save the best model and show some feedback
-            if generation_i % report_every == 0:
-                print(
-                    'Generation {} - fitness={}'.format(generation_i, best_fitness),
-                    'nodes={} edges={}'.format(
-                        len(best_genome.nodes), len(best_genome.genes)
-                    ))
-                if save_file:
-                    with open(save_file, 'wb') as out_file:
-                        pickle.dump(best_genome, out_file)
-        self.stop_workers()
+                # update population
+                neat.breed(genome_fitnesses)
+                neat.species_fitness_summary()
+                # save the best model and show some feedback
+                if generation_i % report_every == 0:
+                    print(
+                        'Generation {} - fitness={}'.format(generation_i, best_fitness),
+                        'nodes={} edges={} id={}'.format(
+                            len(best_genome.nodes), len(best_genome.genes), best_genome.id
+                        ))
+                    if save_file:
+                        with open(save_file, 'wb') as out_file:
+                            pickle.dump(best_genome, out_file)
+                    best_genome.summary()
+                    best_genome.plot_graph('best_genome.png')
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.stop_workers()
         return best_genome
 
     def start_workers(
